@@ -1,0 +1,34 @@
+{
+  "codes": [
+    {
+      "error_code": "CREDENTIALS_REQUIRED",
+      "retryable": false,
+      "when": "Vault bundle and deployment token are both absent"
+    },
+    {
+      "error_code": "AUTH_ERROR",
+      "retryable": true,
+      "when": "Provider HTTP 401"
+    },
+    {
+      "error_code": "PERMISSION_DENIED",
+      "retryable": false,
+      "when": "Provider HTTP 403 or missing scope"
+    },
+    {
+      "error_code": "RATE_LIMIT",
+      "retryable": true,
+      "when": "Provider HTTP 429"
+    },
+    {
+      "error_code": "PROVIDER_ERROR",
+      "retryable": true,
+      "when": "Provider HTTP 5xx or timeout"
+    },
+    {
+      "error_code": "UNKNOWN_ERROR",
+      "retryable": false,
+      "when": "Unmapped failure"
+    }
+  ]
+}

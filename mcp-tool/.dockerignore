@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+data
+**/*_test.*
+**/README.md
+docs
+tests
+**/.DS_Store

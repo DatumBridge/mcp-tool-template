@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+data/
+*.log
+node_modules/
+__pycache__/
+.venv/
+target/
+bin/
+dist/
+vendor/
+.DS_Store

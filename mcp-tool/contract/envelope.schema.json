@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weaver.local/mcp-tool/envelope.schema.json",
+  "description": "JSON object inside tools/call result.content[].text",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["success"],
+      "properties": {
+        "success": { "const": true },
+        "paging": { "type": "integer", "minimum": 1 },
+        "total_page": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    },
+    {
+      "type": "object",
+      "required": ["success", "error"],
+      "properties": {
+        "success": { "const": false },
+        "error": {
+          "type": "object",
+          "required": [
+            "error_code",
+            "error_message",
+            "retryable",
+            "original_provider_error"
+          ],
+          "properties": {
+            "error_code": { "type": "string", "minLength": 1 },
+            "error_message": { "type": "string", "minLength": 1 },
+            "retryable": { "type": "boolean" },
+            "original_provider_error": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

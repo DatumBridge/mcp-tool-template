@@ -1,0 +1,61 @@
+{
+  "success": {
+    "request_headers": { "Mcp-Session-Id": "opaque-session-id" },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "tools/call",
+      "params": {
+        "name": "list_items",
+        "arguments": { "query": "status:open", "page": 1 }
+      }
+    },
+    "arguments_after_registry_inject": {
+      "query": "status:open",
+      "page": 1,
+      "credentials_json": "<vault bundle; do not log this and do not copy it into Docs>"
+    },
+    "response_body": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":true,\"items\":[{\"id\":\"18f2a1c0b4e9d123\"}],\"paging\":1,\"total_page\":1}"
+          }
+        ],
+        "isError": false
+      }
+    }
+  },
+  "handler_error": {
+    "response_body": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"success\":false,\"error\":{\"error_code\":\"CREDENTIALS_REQUIRED\",\"error_message\":\"Gateway did not inject credentials\",\"retryable\":false,\"original_provider_error\":null}}"
+          }
+        ],
+        "isError": true
+      }
+    }
+  },
+  "missing_required": {
+    "response_body": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "error": { "code": -32602, "message": "Invalid params" }
+    }
+  },
+  "unknown_tool": {
+    "response_body": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "error": { "code": -32601, "message": "Unknown tool" }
+    }
+  }
+}
