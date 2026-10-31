@@ -126,6 +126,16 @@ class CheckContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("1 tool(s) ok", result.stdout)
 
+    def test_register_docs_required(self) -> None:
+        contract = (self.tree / "CONTRACT.md").read_text(encoding="utf-8")
+        (self.tree / "CONTRACT.md").write_text(
+            contract.replace("GET /register", "GET /health"),
+            encoding="utf-8",
+        )
+        result = run(self.tree)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("GET /register", result.stderr)
+
     def test_replace_server_and_missing_dockerfile(self) -> None:
         card = filled_card()
         card["server_id"] = "replace_server"

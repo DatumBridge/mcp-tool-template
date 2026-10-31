@@ -165,6 +165,32 @@ def dockerfile_instructions(text: str) -> list[str]:
     return lines
 
 
+def register_doc_errors() -> list[str]:
+    """Remote gateway sync needs GET /register documented next to /health and /mcp."""
+    errors: list[str] = []
+    contract = (ROOT / "CONTRACT.md").read_text(encoding="utf-8")
+    api = (ROOT / "docs" / "technical" / "api-specification.md").read_text(encoding="utf-8")
+    if "GET /register" not in contract:
+        errors.append("CONTRACT.md must document GET /register")
+    if "## `GET /register`" not in api and "## GET /register" not in api:
+        errors.append("docs/technical/api-specification.md must document GET /register")
+    card = load_json(ROOT / "contract" / "tools.json")
+    tools = card.get("tools")
+    if not isinstance(tools, list):
+        return errors
+    names: list[str] = []
+    for tool in tools:
+        if isinstance(tool, str):
+            names.append(tool)
+        elif isinstance(tool, dict) and isinstance(tool.get("name"), str):
+            names.append(tool["name"])
+    docs = ROOT / "registry_docs"
+    for name in names:
+        if not (docs / f"{name}.md").is_file():
+            errors.append(f"GET /register tools must match registry_docs/{name}.md")
+    return errors
+
+
 def dockerfile_errors(card: dict) -> list[str]:
     path = dockerfile_path(card)
     try:
@@ -252,6 +278,8 @@ def main() -> None:
         missing = sorted(set(codes) - documented)
         if missing:
             errors.append("error codes never documented: " + ", ".join(missing))
+
+    errors.extend(register_doc_errors())
 
     if publish:
         if server_id.lower() == "replace_server" or not NAME_RE.match(server_id):

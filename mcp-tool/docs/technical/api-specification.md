@@ -1,11 +1,19 @@
 # API
 
-Two HTTP routes.
+Three HTTP routes.
 
 ## `GET /health`
 
 - Auth: none
 - Response: `200` `{"status":"ok"}`
+
+## `GET /register`
+
+- Auth: none (Weaver may send an optional Bearer token the tenant admin stored for this origin)
+- Session: none. Do not require `Mcp-Session-Id`.
+- Response: `200` `application/json` with `server_id`, `name`, `version`, and `tools[]`.
+- Each tool matches `tools/list`: `name`, `description`, `inputSchema` (with `x-datumbridge-capabilities` and `x-datumbridge-docs`), optional `outputSchema`.
+- Weaver pulls this route when a tenant admin registers a remote MCP server that is not deployed on Weaver Cloud. It does not grant execute rights.
 
 ## `POST /mcp`
 
@@ -23,4 +31,4 @@ Streamable HTTP JSON-RPC 2.0. Protocol `2024-11-05`.
 
 Tool names, arguments, samples, and the `## Audience` row live in `registry_docs/`. The schema annotations are in `CONTRACT.md` section 4. Setup copies that row. This server does not expose an admin route that changes it.
 
-This server has no REST admin API. Do not return the tool envelope from a route other than `/mcp`.
+`/register` is a read-only install card. Do not return the tool call envelope from it. This server has no other REST admin API.

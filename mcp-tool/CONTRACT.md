@@ -8,7 +8,7 @@ Deep matches a tool from a short catalog (id, name, description). After the tool
 
 1. **Tool-server.** Tools run in this process and call an upstream API. Do not add a device socket, pairing, or an edge catalog.
 2. **Data, not decisions.** A tool returns facts. It does not approve, refuse, or authorize. Weaver workflows and people keep that authority.
-3. **The registry is the install surface.** Publish builds `Dockerfile`, runs the image, then calls `initialize` and `tools/list`. Setup stores each tool from that list. A server that does not speak this surface cannot be installed.
+3. **The registry is the install surface.** Publish builds `Dockerfile`, runs the image, then calls `initialize` and `tools/list`. Setup stores each tool from that list. A provider that keeps the server off Weaver Cloud exposes `GET /register` instead; a tenant admin syncs that manifest and a workspace admin installs the package. A server that does not speak one of these surfaces cannot be installed.
 4. **Docs are the planner contract.** Every tool ships `registry_docs/<tool_name>.md`. The process copies that file onto `x-datumbridge-docs` in `tools/list`. Schema text alone is not the guide.
 5. **The gateway injects secrets.** Deep never sends tokens. When Weaver vault OAuth is the auth mode, the schema still declares optional `credentials_json` so the registry can place the vault bundle on `tools/call` arguments. Typical-call JSON omits it. The handler passes that value to the service and does not log it. When `design.md` says the deployment holds the token, use `PROVIDER_API_TOKEN` and do not declare `credentials_json`.
 6. **Identifiers are earned.** Samples show shape. A live call uses an id from an earlier tool result or from the user.
@@ -37,7 +37,7 @@ entrypoint → transport → tools → services → upstream
 | Responsibility | Default path | Does | Does not |
 |----------------|--------------|------|----------|
 | Entrypoint | process main | Load env, listen, shut down | Call the provider |
-| Transport | `src/transport/` | `GET /health`, `POST /mcp`, session, JSON-RPC | Know provider URLs |
+| Transport | `src/transport/` | `GET /health`, `GET /register`, `POST /mcp`, session, JSON-RPC | Know provider URLs |
 | Tools | `src/tools/` | Name, JSON Schema, validate, pass `credentials_json` into the service, envelope | Embed an SDK or set upstream headers |
 | Services | `src/services/` | Provider client, upstream request headers, map HTTP status to `error_code` | Read the MCP session or set `Mcp-Session-Id` |
 | Errors | `src/errors/` | Codes that match `contract/error-codes.json` | Invent a second list in guides |
@@ -53,6 +53,7 @@ A language may use other directories. Record the same six rows in `design.md`. D
 |------|--------|
 | Listen | `0.0.0.0:8000` (`PORT`, default 8000). The registry builds base URLs on port 8000. |
 | Health | `GET /health` → HTTP 200, body `{"status":"ok"}` |
+| Register | `GET /register` → HTTP 200 JSON manifest (no session). Required for a remote install that skips DevSecOps. |
 | MCP | `POST /mcp` |
 | Protocol | `2024-11-05` |
 | Image | `Dockerfile` at `./dockerfile_path` (default `./Dockerfile`), non-root `USER`, `HEALTHCHECK` on `/health` |
@@ -189,10 +190,45 @@ Language tests must also prove:
 
 ## 7. Install
 
+### On Weaver Cloud
+
 1. Repository contains this tree plus your language code. `dockerfile_path` is `./Dockerfile`.
 2. Publish from Weaver Tool Registry (source repository, branch, description, dockerfile path). Scanning and deploy run before the tool is registered.
 3. After the pod is up, Setup calls `POST /mcp` → `initialize` → `tools/list` and stores Docs.
 4. Grant the tool on the Digital Employee. Redeploy `datumbridge-agent` when Deep must load the new guides.
+
+### Off Weaver Cloud (remote gateway)
+
+1. Host the server yourself. It still speaks `GET /health`, `GET /register`, and `POST /mcp`.
+2. A tenant admin registers the HTTPS origin in Tool Registry → System and syncs. Weaver calls `GET {baseUrl}/register` and stores the same registry rows Setup would store. There is no scan, image build, or cluster deploy.
+3. A workspace admin installs that package for their workspace. Role Agents, Deep, and IT Systems receive it only after that install.
+4. Execute calls `POST {baseUrl}/mcp` on the provider origin. Grant the tool on the Digital Employee as usual.
+
+### `GET /register`
+
+No auth session and no `Mcp-Session-Id`. Response is HTTP 200 `application/json`:
+
+```json
+{
+  "server_id": "acme_orders",
+  "name": "Acme Orders",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "get_order",
+      "description": "…\nCapabilities: acme_orders.get_order\nOutputs: success, items, paging, total_page",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "x-datumbridge-capabilities": ["acme_orders.get_order"],
+        "x-datumbridge-docs": "# get_order\n…"
+      }
+    }
+  ]
+}
+```
+
+`tools[]` uses the same fields as `tools/list`: `name`, `description`, `inputSchema` (including the schema annotations in section 4), optional `outputSchema`. Each `name` must match `registry_docs/<name>.md` and `contract/tools.json`. `server_id` must match `contract/tools.json`.
 
 ## 8. Do not
 
