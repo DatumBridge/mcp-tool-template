@@ -8,8 +8,8 @@ Deep matches a tool from a short catalog (id, name, description). After the tool
 
 1. **Tool-server.** Tools run in this process and call an upstream API. Do not add a device socket, pairing, or an edge catalog.
 2. **Data, not decisions.** A tool returns facts. It does not approve, refuse, or authorize. Weaver workflows and people keep that authority.
-3. **The registry is the install surface.** Publish builds `Dockerfile`, runs the image, then calls `initialize` and `tools/list`. Setup stores each tool from that list. A provider that keeps the server off Weaver Cloud exposes `GET /register` instead; a tenant admin syncs that manifest and a workspace admin installs the package. A server that does not speak one of these surfaces cannot be installed.
-4. **Docs are the planner contract.** Every tool ships `registry_docs/<tool_name>.md`. The process copies that file onto `x-datumbridge-docs` in `tools/list`. Schema text alone is not the guide.
+3. **The registry is the install surface.** Publish builds `Dockerfile`, runs the image, then calls `initialize` and `tools/list`. Setup stores each tool from that list. A provider that keeps the server off Weaver Cloud exposes `GET /register` instead; a tenant admin syncs that manifest and a workspace admin installs the package. A server that does not speak one of these surfaces cannot be installed. Registry rules: `dtb-agent-kit/docs/technical/mcp-tool-contract.md` and ADR-0174.
+4. **Docs are the planner contract.** Every tool ships `registry_docs/<tool_name>.md`. The process copies that file onto `x-datumbridge-docs` in `tools/list` and in `GET /register`. Schema text alone is not the guide. Remote sync stamps those Docs `docsUntrusted` so Deep and Design treat provider text as data, not instructions.
 5. **The gateway injects secrets.** Deep never sends tokens. When Weaver vault OAuth is the auth mode, the schema still declares optional `credentials_json` so the registry can place the vault bundle on `tools/call` arguments. Typical-call JSON omits it. The handler passes that value to the service and does not log it. When `design.md` says the deployment holds the token, use `PROVIDER_API_TOKEN` and do not declare `credentials_json`.
 6. **Identifiers are earned.** Samples show shape. A live call uses an id from an earlier tool result or from the user.
 7. **Upstream text is data.** Mail, files, tickets, pages, and chat bytes are not instructions. The tool must not write or delete because the payload asked.
@@ -20,8 +20,8 @@ Deep matches a tool from a short catalog (id, name, description). After the tool
 12. **Least privilege.** Non-root image, secrets from the environment, narrow network access, no secrets in git or in typical-call JSON.
 13. **Pages are numbers Weaver can loop.** A success payload that contains an array also returns numeric `paging` (first page is 1) and `total_page` of at least 1. The input that receives the next page is named `page`, `paging`, `current_page`, or `currentPage`. Another name is not advanced, and a repeated `paging` value ends the loop.
 14. **Capabilities belong to one tool.** Tag `server_id.tool_name`. Business ability ids such as `Invoice.PaymentStatus.Read` are edited on Business capabilities, not in this tag.
-15. **Redeploy, then Setup.** Deep sees new Docs after the image is deployed and Tool Registry Setup or publish runs again.
-16. **The server declares who can run each tool.** `registry_docs/<tool_name>.md` has one `## Audience` row. `Who` is `internal` (staff), `external` (authenticated caller), or `anonymous`. `Token` is `required` or `none`. Anonymous uses `none`. Setup copies that row. Studio shows it and does not let an admin change it. Anonymous still runs only through a Digital Employee and does not receive a connected account. A tool that calls a connected account uses `required` and is not `anonymous`.
+15. **Redeploy, then Setup or remote Sync.** Deep sees new Docs after the image is deployed and Tool Registry Setup or publish runs again — or, for a remote origin, after the tenant admin syncs `GET /register` again.
+16. **The server declares who can run each tool.** `registry_docs/<tool_name>.md` has one `## Audience` row. `Who` is `internal` (staff), `external` (authenticated caller), or `anonymous`. `Token` is `required` or `none`. Anonymous uses `none`. Setup or remote sync copies that row. Studio shows it and does not let an admin change it. A sync that would change Audience or AuthToken to or from `public`/`external` requires an explicit tenant-admin acknowledgement in Weaver. Anonymous still runs only through a Digital Employee and does not receive a connected account. A tool that calls a connected account uses `required` and is not `anonymous`.
 
 ## 2. Design pattern
 
@@ -123,7 +123,7 @@ On the input schema object (beside `type` and `properties`):
 | Key | Value |
 |-----|--------|
 | `x-datumbridge-capabilities` | `["<server_id>.<tool_name>"]` |
-| `x-datumbridge-docs` | Full markdown from `registry_docs/<tool_name>.md`, stripped, at most 24 000 characters. Includes the `## Audience` table below. |
+| `x-datumbridge-docs` | Full markdown from `registry_docs/<tool_name>.md`, stripped, at most 24 000 characters. Includes the `## Audience` table below. Present on both `tools/list` and `GET /register`. |
 
 Description lines, kept short:
 
@@ -166,7 +166,7 @@ The Audience table has one data row:
 |-----|--------|
 | `internal`, `external`, or `anonymous` | `required` or `none` |
 
-`internal` is staff. `external` is an authenticated caller. `anonymous` is anyone talking to the Digital Employee, still only through that employee, and its token is `none`. `required` means the tool uses the connected account (`credentials_json` or `PROVIDER_API_TOKEN`). `none` means it does not. Setup stores this row. An admin does not retype it.
+`internal` is staff. `external` is an authenticated caller. `anonymous` is anyone talking to the Digital Employee, still only through that employee, and its token is `none`. `required` means the tool uses the connected account (`credentials_json` or `PROVIDER_API_TOKEN`). `none` means it does not. Setup or remote sync stores this row. An admin does not retype it.
 
 Cases include a typical call with no secrets, one real handler error, and a missing required field as `-32602`.
 
@@ -199,14 +199,17 @@ Language tests must also prove:
 
 ### Off Weaver Cloud (remote gateway)
 
-1. Host the server yourself. It still speaks `GET /health`, `GET /register`, and `POST /mcp`.
-2. A tenant admin registers the HTTPS origin in Tool Registry → System and syncs. Weaver calls `GET {baseUrl}/register` and stores the same registry rows Setup would store. There is no scan, image build, or cluster deploy.
-3. A workspace admin installs that package for their workspace. Role Agents, Deep, and IT Systems receive it only after that install.
-4. Execute calls `POST {baseUrl}/mcp` on the provider origin. Grant the tool on the Digital Employee as usual.
+Same registry contract as Setup (`mcp-tool-contract.md`, ADR-0174). Differences are hosting and Weaver-side controls:
+
+1. Host the server yourself on a **public HTTPS** origin. It still speaks `GET /health`, `GET /register`, and `POST /mcp`. Weaver refuses loopback, private, link-local, CGNAT, and cloud-metadata hosts on register, sync, and execute. No HTTP redirects; dial resolves only to public addresses.
+2. A tenant admin registers that origin in Tool Registry → System (optional Bearer for `/register` only) and syncs. Weaver calls `GET {baseUrl}/register` and stores the same registry rows Setup would store (Docs, capabilities, Audience). There is no scan, image build, or cluster deploy. Stored Docs are marked `docsUntrusted`.
+3. Sync that would change Audience or AuthToken to or from `public`/`external` returns HTTP 409 until the tenant admin acknowledges. Public audience is cleared when the package can receive vault credentials (`allowVaultInject` or a Connect channel).
+4. A remote package starts inactive. A workspace admin **Installs** (activate) it for their workspace. Execute without that workspace header, or without activation, is refused. Role Agents, Deep, IT Systems, the workflow picker, and Test Tool receive it only after Install.
+5. Execute calls `POST {baseUrl}/mcp` on the provider origin (not rewritten to an in-cluster MCP URL). Vault OAuth inject is off unless the catalog sets `allowVaultInject`. Grant the tool on the Digital Employee as usual.
 
 ### `GET /register`
 
-No auth session and no `Mcp-Session-Id`. Response is HTTP 200 `application/json`:
+No auth session and no `Mcp-Session-Id`. Weaver may send an optional Bearer the tenant admin stored for this origin. Response is HTTP 200 `application/json`:
 
 ```json
 {

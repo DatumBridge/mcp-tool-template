@@ -13,7 +13,7 @@ Read [`CONTRACT.md`](CONTRACT.md) before writing code. Do not start from a blank
 7. Run `sh scripts/check-contract.sh`, then the language tests named in `tests/README.md`.
 8. Fill `docs/` from the behavior you implemented.
 9. Run `sh scripts/check-contract.sh --publish`.
-10. One git repository. Publish to the Weaver Tool Registry, deploy, then Setup. See `README.md`.
+10. One git repository. Publish to the Weaver Tool Registry, deploy, then Setup — or host a public HTTPS origin and document `GET /register` for remote Sync (ADR-0174). See `README.md` and `CONTRACT.md` §7.
 
 ## Stop if
 

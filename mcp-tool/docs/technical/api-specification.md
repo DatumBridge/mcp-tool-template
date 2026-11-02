@@ -13,7 +13,8 @@ Three HTTP routes.
 - Session: none. Do not require `Mcp-Session-Id`.
 - Response: `200` `application/json` with `server_id`, `name`, `version`, and `tools[]`.
 - Each tool matches `tools/list`: `name`, `description`, `inputSchema` (with `x-datumbridge-capabilities` and `x-datumbridge-docs`), optional `outputSchema`.
-- Weaver pulls this route when a tenant admin registers a remote MCP server that is not deployed on Weaver Cloud. It does not grant execute rights.
+- Weaver pulls this route when a tenant admin registers a remote MCP server that is not deployed on Weaver Cloud (ADR-0174 / `mcp-tool-contract.md`). Sync stores Docs, capabilities, and Audience the same way Setup stores `tools/list`, stamps remote Docs `docsUntrusted`, and does **not** grant execute rights. A workspace admin must Install (activate) the package before Role Agents or Test Tool can call `POST /mcp` on this origin.
+- Weaver accepts only a public HTTPS `baseUrl`. Loopback, private, link-local, CGNAT, and cloud-metadata hosts are refused on register, sync, and execute. Redirects are refused.
 
 ## `POST /mcp`
 
@@ -29,6 +30,6 @@ Streamable HTTP JSON-RPC 2.0. Protocol `2024-11-05`.
 
 `text` validates against `contract/envelope.schema.json`.
 
-Tool names, arguments, samples, and the `## Audience` row live in `registry_docs/`. The schema annotations are in `CONTRACT.md` section 4. Setup copies that row. This server does not expose an admin route that changes it.
+Tool names, arguments, samples, and the `## Audience` row live in `registry_docs/`. The schema annotations are in `CONTRACT.md` section 4. Setup or remote Sync copies that row. This server does not expose an admin route that changes it.
 
 `/register` is a read-only install card. Do not return the tool call envelope from it. This server has no other REST admin API.

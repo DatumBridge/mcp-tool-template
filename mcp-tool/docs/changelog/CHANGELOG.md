@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-02
+
+### Changed
+
+- **Remote gateway contract aligned with `mcp-tool-contract.md` / ADR-0174.** Off Weaver Cloud: public HTTPS origin, `GET /register` carries the same Docs/capabilities/Audience as `tools/list`, Weaver stamps remote Docs untrusted, workspace Install before execute, vault inject opt-in (`allowVaultInject`), and Audience/AuthToken changes to or from public/external need tenant-admin acknowledgement on sync. See `CONTRACT.md` §7, BR-7, and `docs/technical/api-specification.md`.
+
 ## 2026-10-29
 
 ### Changed

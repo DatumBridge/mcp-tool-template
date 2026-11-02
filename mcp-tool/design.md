@@ -30,7 +30,8 @@ Change the path column if the language uses other directories. Do not drop a row
 - Protocol version stays `2024-11-05` until Weaver's registry client changes.
 - Listen port stays 8000.
 - Business decisions stay in Weaver. This server returns data.
-- Each tool's `## Audience` row is this server's decision: who can run it, and whether it needs a token. Anonymous uses `none`.
+- Each tool's `## Audience` row is this server's decision: who can run it, and whether it needs a token. Anonymous uses `none`. Setup or remote Sync copies it; Weaver may require admin ack when Audience/AuthToken moves to or from public/external.
+- Off Weaver Cloud, expose public HTTPS `/register` and `/mcp` (ADR-0174). Weaver stamps remote Docs untrusted and requires workspace Install before execute.
 - No database unless the upstream integration cannot be stateless. Sessions may live in memory with a TTL.
 
 ## Non-goals
@@ -41,4 +42,4 @@ Change the path column if the language uses other directories. Do not drop a row
 
 ## Rollback
 
-Redeploy the previous image. Deactivate the registry rows for tools this version added.
+Redeploy the previous image. Deactivate the registry rows for tools this version added. For a remote origin, re-sync `GET /register` after a rollback or deactivate the catalog package in workspaces that installed it.

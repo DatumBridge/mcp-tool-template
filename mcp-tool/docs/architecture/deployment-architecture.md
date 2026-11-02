@@ -8,12 +8,12 @@ Weaver deploy builds `./Dockerfile` and runs the container on port **8000** in t
 | Remote install card | `GET /register` |
 | Tool install on Weaver Cloud | `POST /mcp` `initialize`, then `tools/list` |
 
-A provider that keeps the process off Weaver Cloud still exposes `/register` and `/mcp`. Weaver syncs the card and calls the provider origin on execute.
+A provider that keeps the process off Weaver Cloud still exposes `/register` and `/mcp` on a **public HTTPS** origin. Weaver syncs the card, stamps Docs untrusted, keeps execute on that origin, and requires a workspace Install before Role Agents or Test Tool can call it. Vault inject defaults off (`allowVaultInject`).
 
 The image runs as a non-root user. Secrets arrive as environment variables from the platform, not from the image.
 
 ## Rollback
 
-Deploy the previous image. Deactivate registry tools that only the new image exposes. Guides update on the next Setup.
+Deploy the previous image. Deactivate registry tools that only the new image exposes. Guides update on the next Setup (Weaver Cloud) or remote Sync.
 
 Fill the repository URL and Kubernetes name when you publish.
